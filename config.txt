@@ -1,0 +1,53 @@
+[base]
+test_instances = instances.txt
+mintime = 2.0
+maxtime = 3600
+sig_gain = 1.2
+max_seeds = 10
+min_seeds = 3
+algo_names = solveroptim solver_restartdfs
+
+
+[solver_ida]
+tuning_param = step
+tuning_values = 0.1
+exec = "/home/iaraya/github/ibex/ibex-ida2/examples/solveroptim-araya05"
+params = _INSTANCE optim acidhc4 compo smearsumrel 1e-8 1e-8 _MAXTIME 0.8 _SEED 0.9 _step
+output_fpos = 2
+
+[solveroptim]
+exec = "/home/iaraya/github/ibex/ibex-gbfs/__build__/examples/solveroptim"
+params = _INSTANCE optim acidhc4 compo smearsumrel 1e-8 1e-8 _MAXTIME 0.8 _SEED 0
+output_fpos = 2
+
+[solver_gbfs]
+description = "greedy-BFS solver. Performs a greedy-BFS in each selected box using the MinLB criteria"
+exec = "/home/iaraya/github/ibex/ibex-gbfs/__build__/examples/solveroptim-bs"
+params = _INSTANCE optim acidhc4 compo smearsumrel 1e-8 1e-8 _MAXTIME 0.8 _SEED 1
+output_fpos = 2
+
+[solver_gbfs_limited]
+description = "greedy-BFS solver. With limited depth"
+tuning_param = maxdepth
+tuning_values = 50 100
+exec = "/home/iaraya/github/ibex/ibex-gbfs/__build__/examples/solveroptim-bs"
+params = _INSTANCE optim acidhc4 compo smearsumrel 1e-8 1e-8 _MAXTIME 0.8 _SEED 1 _maxdepth
+output_fpos = 2
+
+[solver_kbfs]
+description = "beam-search solver. Performs a beam search in each selected box with N beams using the MinLB criteria"
+tuning_param = N
+tuning_values = 2 3 4
+exec = "/home/iaraya/github/ibex/ibex-gbfs/__build__/examples/solveroptim-bs"
+params = _INSTANCE optim acidhc4 compo smearsumrel 1e-8 1e-8 _MAXTIME 0.8 _SEED _N
+output_fpos = 2
+
+[solver_restartdfs]
+tuning_param = period
+tuning_values = 5 10 50 100
+exec = "/home/iaraya/github/ibex/ibex-gbfs/__build__/examples/solveroptim-restartDFS"
+params = _INSTANCE optim acidhc4 compo smearsumrel 1e-8 1e-8 _MAXTIME 0.8 _SEED 1 10000 _period
+output_fpos = 2
+
+
+
