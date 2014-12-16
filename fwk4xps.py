@@ -20,6 +20,7 @@ import os
 
 lock = Lock()
 shared_times = []
+shared_boxes = []
 shared_gains = []
 shared_run = []
 shared_avgtime = []
@@ -40,15 +41,18 @@ class Algo:
 		self.params = configParser.get(name, 'params')
 		self.params = self.params.replace('_ALGO', self.ex);
 		self.params = self.params.replace('_MAXTIME', configParser.get('base', 'maxtime'));
-		self.output_fpos = configParser.get(name, 'output_fpos')
+		self.outputpos_times = configParser.get(name, 'outputpos_times')
+		self.outputpos_boxes = configParser.get(name, 'outputpos_boxes')
 
 		
 	def run(self, inst, seed):
 		run_exec = self.ex + " " + self.params.replace('_INSTANCE', inst)
 		run_exec = run_exec.replace('_SEED', str(seed))
+		print run_exec
 		output = subprocess.check_output(run_exec,shell=True,).splitlines()[-1]
+
 		try:
-			return float(output.split()[int(self.output_fpos)])
+			return (float(output.split()[int(self.outputpos_times)]), float(output.split()[int(self.outputpos_boxes)]))
 		except ValueError:
 			print "error with instance " + inst.split('/')[-1] + "\n" + output
 			return -2.0
@@ -91,12 +95,13 @@ def onKeyPress(event):
 	shared_stop=1
 
 def read_times(name,i,config):
-	global shared_times
+	global shared_times, shared_boxes
 	shared_times[i,:] = -1.0
+	shared_boxes[i,:] = -1.0
 	try:
 		f = open("%(dir)s/%(name)s_times.out" % {"dir":config.algos[i].output_dir,"name":name}, )
+		f2 = open("%(dir)s/%(name)s_boxes.out" % {"dir":config.algos[i].output_dir,"name":name}, )
 		idx = 0
-
 		for lines in f:
 			#~ print lines.split()
 			seed=0
@@ -106,8 +111,21 @@ def read_times(name,i,config):
 				if shared_times[i,idx + len(config.instances)*seed]==-1.5: shared_times[i,idx + len(config.instances)*seed]=-1.0
 				seed += 1
 			idx+=1
+			
+		idx = 0
+		for lines in f2:
+			#~ print lines.split()
+			seed=0
+			for line in lines.split():
+				if seed==config.max_seeds: break
+				shared_boxes[i,idx + len(config.instances)*seed ] = float(line)
+				if shared_boxes[i,idx + len(config.instances)*seed]==-1.5: shared_boxes[i,idx + len(config.instances)*seed]=-1.0
+				seed += 1
+			idx+=1			
+			
 		#~ print shared_times[i]
 		f.close()
+		f2.close()
 	except IOError:		
 		None
 		
@@ -117,7 +135,7 @@ def read_times(name,i,config):
 	#shared_run[i]=len(timesA)
 
 def write_times(name,i,config):
-	global shared_times
+	global shared_times, shared_boxes
 	try:
 		os.mkdir(config.algos[i].output_dir)
 	except OSError:
@@ -125,9 +143,27 @@ def write_times(name,i,config):
 	
 	f = open("%(dir)s/%(name)s_times.out" % {"dir":config.algos[i].output_dir,"name":name}, "w")
 	f2 = open("%(dir)s/%(name)s_meantimes.out" % {"dir":config.algos[i].output_dir,"name":name}, "w")
+
+	
 	for j in  range(len(config.instances)):
 		for k in range(config.max_seeds):	
 			f.write("%.2f " % shared_times[i][k*len(config.instances)+j])
+		f.write("\n")
+		
+		(mean,h,n) = mean_error(config, i, j, config.max_seeds)
+		f2.write("%.2f " % mean)
+		f2.write("+- %.2f" % h)
+		f2.write(" (%d)\n" % n)
+		
+	f.close()
+	f2.close()
+
+	f = open("%(dir)s/%(name)s_boxes.out" % {"dir":config.algos[i].output_dir,"name":name}, "w")
+	f2 = open("%(dir)s/%(name)s_meanboxes.out" % {"dir":config.algos[i].output_dir,"name":name}, "w")
+	
+	for j in  range(len(config.instances)):
+		for k in range(config.max_seeds):	
+			f.write("%.2f " % shared_boxes[i][k*len(config.instances)+j])
 		f.write("\n")
 		
 		(mean,h,n) = mean_error(config, i, j, config.max_seeds)
@@ -236,15 +272,17 @@ def av_rel_time(i,config):
 	x=[] 
 	for k in range(len(config.instances)):
 		if config.instances[k].endswith('*'): continue
-		n=0;sum0=0;sum1=0; sum2=0
+		n0=0;n1=0;sum0=0;sum1=0; sum2=0
 		for kk in range(config.max_seeds):
-			if shared_times[0,k+kk*len(config.instances)] >=0.0 and shared_times[i,k+kk*len(config.instances)] >=0.0:
+			if shared_times[0,k+kk*len(config.instances)] >=0.0:
 				sum0+=shared_times[0,k+kk*len(config.instances)]
+				n0+=1
+			if shared_times[i,k+kk*len(config.instances)] >=0.0:
 				sum1+=shared_times[i,k+kk*len(config.instances)]
-				n+=1
-		rel1=sum1/(sum1+sum0+0.001)
+				n1+=1
 
-		if n>0 and (sum0/float(n)>config.mintime or sum1/float(n)>config.mintime) and (sum0/float(n)<config.maxtime or sum1/float(n)<config.maxtime):
+		if n0>0 and n1>0 and (sum0/float(n0)>config.mintime or sum1/float(n1)>config.mintime) and (sum0/float(n0)<config.maxtime or sum1/float(n1)<config.maxtime):
+			rel1 = (sum1/float(n1)) /(sum1/float(n1)+sum0/float(n0)+0.001)
 			x.append(rel1)
 	xmean=np.mean(x)
 	return xmean
@@ -264,9 +302,9 @@ def gain_total_time(i,config):
 				sum1+=shared_times[i,k+kk*len(config.instances)]
 				n1+=1.
 				
-		if n0>0 and n1>0:
-			total_time0+=sum0/n0
-			total_time1+=sum1/n1
+		if n0>0. and n1>0. and ((sum0/n0)<config.maxtime or (sum1/n1)<config.maxtime):
+			total_time0+=(sum0/n0)
+			total_time1+=(sum1/n1)
 		
 	return total_time0/(total_time1+0.01)
 
@@ -399,14 +437,14 @@ def next_run(config):
 	lock.release()
 
 	inst=config.instances[config.idx2inst[idx]]
-	print config.algos[id_algo].name, " ", inst, " ", seed
-	output_time = config.algos[id_algo].run(inst,seed)
+	(output_time, output_box) = config.algos[id_algo].run(inst,seed)
 
 	lock.acquire()
 	
 	if shared_stop==1: return None
 	
 	shared_times[id_algo,len(config.instances)*(seed-1)+config.idx2inst[idx]] = output_time
+	shared_boxes[id_algo,len(config.instances)*(seed-1)+config.idx2inst[idx]] = output_box
 	print config.algos[id_algo].name, inst, output_time
 	update_share(config,id_algo,len(config.instances)*(seed-1)+config.idx2inst[idx])
 	write_times(config.algos[id_algo].name,id_algo,config)
@@ -421,6 +459,10 @@ if __name__ == '__main__':
 	shared_times_base = multiprocessing.Array(ctypes.c_float, len(config.instances)*max_algos*config.max_seeds)
 	shared_times = np.ctypeslib.as_array(shared_times_base.get_obj())
 	shared_times = shared_times.reshape(max_algos, len(config.instances)* config.max_seeds)
+
+	shared_boxes_base = multiprocessing.Array(ctypes.c_float, len(config.instances)*max_algos*config.max_seeds)
+	shared_boxes = np.ctypeslib.as_array(shared_boxes_base.get_obj())
+	shared_boxes = shared_boxes.reshape(max_algos, len(config.instances)* config.max_seeds)
 	
 	shared_gains_base = multiprocessing.Array(ctypes.c_float, max_algos)
 	shared_gains = np.ctypeslib.as_array(shared_gains_base.get_obj())

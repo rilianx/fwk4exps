@@ -5,7 +5,7 @@ maxtime = 3600
 sig_gain = 1.2
 max_seeds = 10
 min_seeds = 3
-algo_names = solveroptim solver_restartdfs
+algo_names = solveroptim beamsearch2 lbdiscard Mbeamsearch probed_diving
 
 
 [solver_ida]
@@ -13,41 +13,83 @@ tuning_param = step
 tuning_values = 0.1
 exec = "/home/iaraya/github/ibex/ibex-ida2/examples/solveroptim-araya05"
 params = _INSTANCE optim acidhc4 compo smearsumrel 1e-8 1e-8 _MAXTIME 0.8 _SEED 0.9 _step
-output_fpos = 2
+outputpos_times = 2
+outputpos_boxes = 3
 
 [solveroptim]
 exec = "/home/iaraya/github/ibex/ibex-gbfs/__build__/examples/solveroptim"
 params = _INSTANCE optim acidhc4 compo smearsumrel 1e-8 1e-8 _MAXTIME 0.8 _SEED 0
-output_fpos = 2
+outputpos_times = 2
+outputpos_boxes = 3
 
-[solver_gbfs]
-description = "greedy-BFS solver. Performs a greedy-BFS in each selected box using the MinLB criteria"
+[solveroptim_minLB]
 exec = "/home/iaraya/github/ibex/ibex-gbfs/__build__/examples/solveroptim-bs"
-params = _INSTANCE optim acidhc4 compo smearsumrel 1e-8 1e-8 _MAXTIME 0.8 _SEED 1
-output_fpos = 2
+params = _INSTANCE optim acidhc4 compo smearsumrel 1e-8 1e-8 _MAXTIME 0.8 _SEED normal 0
+outputpos_times = 2
+outputpos_boxes = 3
 
-[solver_gbfs_limited]
-description = "greedy-BFS solver. With limited depth"
-tuning_param = maxdepth
-tuning_values = 50 100
-exec = "/home/iaraya/github/ibex/ibex-gbfs/__build__/examples/solveroptim-bs"
-params = _INSTANCE optim acidhc4 compo smearsumrel 1e-8 1e-8 _MAXTIME 0.8 _SEED 1 _maxdepth
-output_fpos = 2
-
-[solver_kbfs]
-description = "beam-search solver. Performs a beam search in each selected box with N beams using the MinLB criteria"
+[beamsearch]
 tuning_param = N
-tuning_values = 2 3 4
+tuning_values = 1
 exec = "/home/iaraya/github/ibex/ibex-gbfs/__build__/examples/solveroptim-bs"
-params = _INSTANCE optim acidhc4 compo smearsumrel 1e-8 1e-8 _MAXTIME 0.8 _SEED _N
-output_fpos = 2
+params = _INSTANCE optim acidhc4 compo smearsumrel 1e-8 1e-8 _MAXTIME 0.8 _SEED beam_search _N 1.1 0 0 1.0
+outputpos_times = 2
+outputpos_boxes = 3
 
-[solver_restartdfs]
-tuning_param = period
-tuning_values = 5 10 50 100
-exec = "/home/iaraya/github/ibex/ibex-gbfs/__build__/examples/solveroptim-restartDFS"
-params = _INSTANCE optim acidhc4 compo smearsumrel 1e-8 1e-8 _MAXTIME 0.8 _SEED 1 10000 _period
-output_fpos = 2
+[beamsearch2]
+tuning_param = N
+tuning_values = 1 2 4
+exec = "/home/iaraya/github/ibex/ibex-gbfs/__build__/examples/solveroptim-bs"
+params = _INSTANCE optim acidhc4 compo smearsumrel 1e-8 1e-8 _MAXTIME 0.8 _SEED beam_search2 _N 1.1 0 0 1.0
+outputpos_times = 2
+outputpos_boxes = 3
 
+[pbeamsearch]
+tuning_param = PROB
+tuning_values = 0.3 0.6 0.9
+exec = "/home/iaraya/github/ibex/ibex-gbfs/__build__/examples/solveroptim-bs"
+params = _INSTANCE optim acidhc4 compo smearsumrel 1e-8 1e-8 _MAXTIME 0.8 _SEED beam_search 1 _PROB 0 0 1.0
+outputpos_times = 2
+outputpos_boxes = 3
+
+[lbdiscard]
+tuning_param = ALPHA
+tuning_values = 0.6 0.9
+exec = "/home/iaraya/github/ibex/ibex-gbfs/__build__/examples/solveroptim-bs"
+params = _INSTANCE optim acidhc4 compo smearsumrel 1e-8 1e-8 _MAXTIME 0.8 _SEED beam_search 1 1.1 0 0 _ALPHA
+outputpos_times = 2
+outputpos_boxes = 3
+
+[Mbeamsearch]
+tuning_param = N
+tuning_values = 2
+exec = "/home/iaraya/github/ibex/ibex-gbfs/__build__/examples/solveroptim-bs"
+params = _INSTANCE optim acidhc4 compo smearsumrel 1e-8 1e-8 _MAXTIME 0.8 _SEED beam_search2 _N 1.1 0 0 1.0
+outputpos_times = 2
+outputpos_boxes = 3
+
+[diving]
+tuning_param = M
+tuning_values = 1 2 5 10
+exec = "/home/iaraya/github/ibex/ibex-gbfs/__build__/examples/solveroptim-bs"
+params = _INSTANCE optim acidhc4 compo smearsumrel 1e-8 1e-8 _MAXTIME 0.8 _SEED diving 1 1.1 0 _M 1.0
+outputpos_times = 2
+outputpos_boxes = 3
+
+[diving_iter]
+tuning_param = M
+tuning_values = 1 2 5 10
+exec = "/home/iaraya/github/ibex/ibex-gbfs/__build__/examples/solveroptim-bs"
+params = _INSTANCE optim acidhc4 compo smearsumrel 1e-8 1e-8 _MAXTIME 0.8 _SEED diving_iter 1 1.1 0 _M 1.0
+outputpos_times = 2
+outputpos_boxes = 3
+
+[probed_diving]
+tuning_param = M
+tuning_values = 1 2 5
+exec = "/home/iaraya/github/ibex/ibex-gbfs/__build__/examples/solveroptim-bs"
+params = _INSTANCE optim acidhc4 compo smearsumrel 1e-8 1e-8 _MAXTIME 0.8 _SEED probed_diving 1 1.1 0 _M 1.0
+outputpos_times = 2
+outputpos_boxes = 3
 
 
